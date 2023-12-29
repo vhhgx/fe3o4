@@ -1,11 +1,246 @@
 # JS 手写代码 - 逻辑 & 业务相关
 
+## URL 与 JSON 互相转换
+
+```js
+const url = 'https://www.douyin.com/abc?foo=1&bar=2'
+const urlObj = urlToObj(url)
+console.log(urlObj)
+// 输出
+// {
+//     path: 'https://www.douyin.com/abc',
+//     query: {
+//         foo: '1',
+//         bar: '2'
+//     }
+// }
+
+function urlToObj(url) {
+  let obj = {}
+  let result = new URL(url)
+
+  result.searchParams.forEach((val, key) => {
+    obj[key] = val
+  })
+
+  return {
+    path: `${result.origin}${result.pathname}`,
+    query: obj,
+  }
+}
+
+urlObj.query.coo = '3'
+const newUrl = objToUrl(urlObj)
+console.log(newUrl) // 输出 https://www.douyin.com/abc?foo=1&bar=2&coo=3
+
+function objToUrl(obj) {
+  let path = obj.path
+  let url = ''
+  let u = Object.entries(obj.query)
+
+  u.forEach((val) => {
+    url += `${val[0]}=${val[1]}`
+  })
+
+  return `${path}?${url}`
+}
+```
+
+## 数组拍平
+
+```js
+function flatten(arr) {
+  let res = []
+  arr.forEach((val) => {
+    if (Array.isArray(val)) {
+      res = res.concat(flatten(val))
+    } else {
+      res.push(val)
+    }
+  })
+}
+
+flatten([1, 2, [3, 4, 5, [6, 7, 8], 9], 10, [11, 12]])
+```
+
+## 使用 es5 实现 es6 的 let 关键字
+
+```js
+;(function () {
+  var a = 1
+  console.log(a)
+})()
+
+console.log(a)
+```
+
+## 发布订阅模式
+
+```js
+class eventBus {
+  constructor() {
+    this.events = {}
+  }
+
+  subscribe(event, cb) {
+    if (!this.events[event]) {
+      this.events[event] = []
+    }
+
+    this.events[event].push(cb)
+  }
+
+  unsubscribe(event, cb) {
+    if (this.events[event]) {
+      this.events[event] = this.events[event].filter((val) => val !== cb)
+    }
+  }
+
+  publish(event, data) {
+    if (this.events[event]) {
+      this.events[event].forEach((val) => {
+        val(data)
+      })
+    }
+  }
+}
+```
+
+## instanceof
+
+```js
+function myInstance(left, right) {
+  let leftproto = left.__proto__
+  let rightproto = right.prototype
+
+  while (true) {
+    if (leftproto == null) {
+      return false
+    }
+    if (leftproto == rightproto) {
+      return true
+    }
+
+    leftproto = leftproto.__proto__
+  }
+}
+```
+
+## 实现一个柯里化函数
+
+```js
+function curry(fn) {
+  // 返回一个新函数，用于收集参数
+  return function curried(...args) {
+    // 检查当前已收集的参数数量是否足以执行原函数
+    if (args.length >= fn.length) {
+      // 如果足够，执行原函数
+      return fn.apply(this, args)
+    } else {
+      // 如果不够，返回一个新函数，用于继续收集参数
+      return function (...args2) {
+        // 将之前和现在的参数一起传递给curried函数
+        return curried.apply(this, args.concat(args2))
+      }
+    }
+  }
+}
+
+// 示例使用
+function sum(a, b, c) {
+  return a + b + c
+}
+
+const curriedSum = curry(sum)
+
+console.log(curriedSum(1)(2)(3)) // 输出 6
+console.log(curriedSum(1, 2)(3)) // 也输出 6
+console.log(curriedSum(1, 2, 3)) // 同样输出 6
+```
+
+## 浅拷贝
+
+只复制一层
+
+```js
+function shallowCopy(obj) {
+  if (typeof obj !== 'object' || obj == null) {
+    return obj
+  }
+
+  let res = Array.isArray(obj) ? [] : {}
+
+  for (let key in obj) {
+    if (obj.hasProperty(key)) {
+      res[key] = obj[key]
+    }
+  }
+
+  return res
+}
+```
+
+## 深拷贝
+
+这里的内容就比较多，复制各种普通类型和深层次对象，还有 Date 等对象
+
+```js
+// 除了上面的递归调用
+function deepCopy(obj) {
+  if (typeof obj !== 'object' || obj == null) {
+    return obj
+  }
+
+  let res = Array.isArray(obj) ? [] : {}
+
+  for (let key in obj) {
+    if (obj.hasProperty(key)) {
+      res[key] = deepCopy(obj[key])
+    }
+  }
+
+  return res
+}
+
+// 还有更复杂的
+function deepCopy(obj, cache = new WeekMap()) {
+  if (typeof obj !== 'object' || obj === null || typeof obj === 'function') {
+    return obj
+  }
+
+  if (cache.has(obj)) {
+    return cache.get(obj)
+  }
+
+  let val
+
+  // 数组
+  if (Array.isArray(obj)) {
+    val = []
+  } else if (obj instanceof Date) {
+    val = new Date(obj)
+  } else if (obj instanceof RegExp) {
+    val = new Reg(obj.source, obj.flags)
+  } else {
+    val = Object.create(Object.getPrototypeOf(obj))
+  }
+
+  cache.set(obj, val)
+
+  Object.keys(obj).forEach((key) => {
+    val[key] = deepCopy(obj[key], cache)
+  })
+
+  return val
+}
+```
+
 ## 数字格式化、四舍五入、千位符
 
 ```js
 let formatMoney = (num) => num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
 let money = formatMoney(986542135)
-console.log('money ==> ', money) // ""986,542,135""
+console.log('money ==> ', money) // "986,542,135"
 ```
 
 ## 生成随机数
@@ -21,102 +256,207 @@ function uuid(length = 8, chars) {
 }
 ```
 
-## 数组打乱
-
 ## 数组去重
 
 ```js
-let unique3 = (arr) => {
-  let brr = []
-  arr.forEach((item) => {
-    // 使用 indexOf  返回数组是否包含某个值 没有就返回 -1 有就返回下标
-    if (brr.indexOf(item) === -1) brr.push(item)
-    // 或者使用 includes 返回数组是否包含某个值  没有就返回false  有就返回true
-    if (!brr.includes(item)) brr.push(item)
-  })
-  return brr
+const arr = [1, 2, 3, 3, 4, 4, 5]
+// 使用Set
+const uniqueArr = [...new Set(arr)]
+
+// 使用filter
+const uniqueArr = arr.filter((item, index, array) => {
+  return array.indexOf(item) === index
+})
+
+// 使用includes
+let uniqueArr = []
+
+for (let i = 0; i < arr.length; i++) {
+  if (!uniqueArr.includes(arr[i])) {
+    uniqueArr.push(arr[i])
+  }
 }
+
+// 使用reduce
+uniqueArr = arr.reduce((prev, curr) => {
+  if (!prev.includes(curr)) {
+    prev.push(curr)
+  }
+}, [])
+
+console.log(uniqueArr) // [1, 2, 3, 4, 5]
 ```
 
-实现数组去重的方法有很多种，下面列举几种常见的方法：
+## promise
 
-1. 使用 Set 数据结构。Set 是 ES6 中新增的一种数据结构，它可以用来存储一组唯一的值。我们可以利用 Set 的特性来实现数组去重，例如：
+```js
+class Pro {
+  constructor(fn) {
+    this.state = 'pending'
+    this.value = ''
+    this.reason = ''
+    this.onFulfilledCbs = []
+    this.onRejectedCbs = []
 
-   ```javascript
-   const arr = [1, 2, 3, 3, 4, 4, 5]
-   const uniqueArr = [...new Set(arr)]
-   console.log(uniqueArr) // [1, 2, 3, 4, 5]
-   ```
-
-2. 使用数组的 filter() 方法。filter() 方法可以根据条件过滤出数组中的元素，我们可以利用该方法来过滤掉重复的元素，例如：
-
-   ```javascript
-   const arr = [1, 2, 3, 3, 4, 4, 5]
-   const uniqueArr = arr.filter((item, index, array) => {
-     return array.indexOf(item) === index
-   })
-   console.log(uniqueArr) // [1, 2, 3, 4, 5]
-   ```
-
-3. 使用对象属性来判断。我们可以利用对象属性的唯一性来判断数组中的元素是否重复，例如：
-
-   ```javascript
-   const arr = [1, 2, 3, 3, 4, 4, 5]
-   const obj = {}
-   const uniqueArr = arr.filter((item) => {
-     return obj.hasOwnProperty(typeof item + item)
-       ? false
-       : (obj[typeof item + item] = true)
-   })
-   console.log(uniqueArr) // [1, 2, 3, 4, 5]
-   ```
-
-4. 使用 ES6 中的 Map 数据结构。Map 可以存储键值对，并且键可以是任何类型的值，可以利用 Map 的特性来实现数组去重，例如：
-
-   ```javascript
-   const arr = [1, 2, 3, 3, 4, 4, 5]
-   const map = new Map()
-   const uniqueArr = arr.filter((item) => {
-     return !map.has(item) && map.set(item, 1)
-   })
-   console.log(uniqueArr) // [1, 2, 3, 4, 5]
-   ```
-
-5. 使用 reduce
-
-可以使用 reduce 方法来实现数组去重。遍历数组，将每个元素作为键值存储在一个对象中，使用 Object.keys 方法将对象的键名转为数组，即可得到去重后的数组。
-
-```javascript
-function unique(arr) {
-  return arr.reduce((prev, curr) => {
-    if (!prev.includes(curr)) {
-      prev.push(curr)
+    resolve(value) {
+      if (this.state == 'pending') {
+        this.state = 'fulfilled'
+        this.value = value
+        this.onFulfilledCbs.forEach((item) => item())
+      }
     }
-    return prev
-  }, [])
-}
 
-const arr = [1, 2, 2, 3, 3, 4]
-console.log(unique(arr)) // [1, 2, 3, 4]
-```
+    reject(reason) {
+      if (this.state == 'pending') {
+        this.state = 'rejected'
+        this.reason = reason
+        this.onRejectedCbs.forEach((item) => item())
+      }
+    }
 
-4. 使用 includes
-
-可以使用 includes 方法来判断当前元素是否已经在结果数组中，若不在，则将其加入结果数组。
-
-```javascript
-function unique(arr) {
-  const res = []
-  for (let i = 0 i < arr.length i++) {
-    if (!res.includes(arr[i])) {
-      res.push(arr[i])
+    try {
+      fn(resolve, reject)
+    } catch (err) {
+      reject(err)
     }
   }
-  return res
+
+  then(onFulfilled, onRejected) {
+    if (this.state === 'fulfilled') {
+      onFulfilled(this.value);
+    }
+
+    if (this.state === 'rejected') {
+      onRejected(this.reason);
+    }
+
+    if (this.state === 'pending') {
+      this.onFulfilledCallbacks.push(() => {
+        onFulfilled(this.value);
+      });
+
+      this.onRejectedCallbacks.push(() => {
+        onRejected(this.reason);
+      });
+    }
+  }
+}
+```
+
+## promise.all()
+
+```js
+SimplePromise.all = function (promises) {
+  return new SimplePromise((resolve, reject) => {
+    let results = []
+    let completed = 0
+    for (let i = 0; i < promises.length; i++) {
+      SimplePromise.resolve(promises[i])
+        .then((value) => {
+          results[i] = value
+          completed++
+          if (completed === promises.length) {
+            resolve(results)
+          }
+        })
+        .catch(reject) // 如果任何一个 Promise 失败
+    }
+  })
+}
+```
+
+## JSON.parse(JSON.stringify())
+
+```js
+
+```
+
+## 模拟实现 Java 中的 sleep 函数
+
+```js
+
+```
+
+## 实现一个简单的模板引擎
+
+要求实现一个简单的模板引擎，可以根据传入的数据和模板，生成最终的 HTML 代码。
+
+```js
+function templateEngine(template, data) {
+  return template.replace(/\{\{(\w+)\}\}/g, function (match, key) {
+    return data[key] !== undefined ? data[key] : ''
+  })
 }
 
-const arr = [1, 2, 2, 3, 3, 4]
-console.log(unique(arr)) // [1, 2, 3, 4]
+// 示例使用
+const template = '<h1>{{title}}</h1><p>{{content}}</p>'
+const data = {
+  title: 'Hello World',
+  content: 'This is a simple template engine.',
+}
+
+const result = templateEngine(template, data)
+console.log(result)
+```
+
+## 设计一个调度程序，可以让 Promise 并发执行，但是最多只能有 5 个任务在执行
+
+```js
+class PromiseScheduler {
+  constructor(maxConcurrent) {
+    this.maxConcurrent = maxConcurrent // 最大并发数限制
+    this.currentRunning = 0 // 当前正在执行的任务数量
+    this.taskQueue = [] // 待执行的任务队列
+  }
+
+  // 添加任务到调度器
+  addTask(promiseFunction) {
+    return new Promise((resolve, reject) => {
+      // 任务包装器，将真正的任务封装起来
+      const task = this.createTask(promiseFunction, resolve, reject)
+
+      if (this.currentRunning < this.maxConcurrent) {
+        // 如果当前执行的任务数小于最大并发数，立即执行任务
+        task()
+      } else {
+        // 否则，将任务添加到队列中等待执行
+        this.taskQueue.push(task)
+      }
+    })
+  }
+
+  // 创建一个任务，接收一个返回 Promise 的函数和原 Promise 的 resolve 和 reject
+  createTask(promiseFunction, resolve, reject) {
+    return () => {
+      // 开始执行任务，当前运行任务数加一
+      this.currentRunning++
+      promiseFunction()
+        .then(resolve) // 任务完成后调用原 Promise 的 resolve
+        .catch(reject) // 任务失败时调用原 Promise 的 reject
+        .finally(() => {
+          // 无论任务成功还是失败，都将当前运行任务数减一
+          this.currentRunning--
+          if (this.taskQueue.length > 0) {
+            // 如果队列中还有任务，取出队列中的下一个任务并执行
+            const nextTask = this.taskQueue.shift()
+            nextTask()
+          }
+        })
+    }
+  }
+}
+
+// 使用示例
+const scheduler = new PromiseScheduler(5) // 创建一个最大并发数为5的调度器
+
+const timeout = (time) => new Promise((res) => setTimeout(res, time))
+
+// 添加10个任务到调度器
+for (let i = 0; i < 10; i++) {
+  scheduler.addTask(() =>
+    timeout(1000).then(() => console.log(`Task ${i} completed`))
+  )
+}
 ```
 
 ### 实现一个方法以比较两个版本号的大小
@@ -129,90 +469,72 @@ compareVersion('1.1.3', '1.0.5') // 返回 1
 ```
 
 ```js
-function compareVersion(source, target) {}
+function compareVersion(v1, v2) {
+  const parts1 = v1.split('.').map(Number)
+  const parts2 = v2.split('.').map(Number)
+
+  for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
+    const num1 = parts1[i] || 0
+    const num2 = parts2[i] || 0
+
+    if (num1 > num2) return 1
+    if (num1 < num2) return -1
+  }
+  return 0
+}
 ```
 
-### 【代码题】按照版本号由小到大排序
+### 按照版本号由小到大排序
 
-样例输入：versions = ['0.1.1', '2.3.3', '0.302.1', '4.2', '4.3.5', '4.3.4.5']
-输出：['0.1.1', '0.302.1', '2.3.3', '4.3.4.5', '4.3.5']
+把上面的作为 sort 函数的回调即可
 
-js 复制代码 function compareVersions(versions) {
-return versions.sort((a, b) => {
-const tempA = a.split('.')
-const tempB = b.split('.')
-const maxLen = Math.max(tempA.length, tempB.length)
-for (let i = 0 i < maxLen i++ ) {
-const valueA = +tempA[i] || 0
-const valueB = +tempB[i] || 0
-if (valueA === valueB) {
-continue
+```js
+function compareVersion(v1, v2) {
+  const parts1 = v1.split('.').map(Number)
+  const parts2 = v2.split('.').map(Number)
+
+  for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
+    const num1 = parts1[i] || 0
+    const num2 = parts2[i] || 0
+
+    if (num1 > num2) return 1
+    if (num1 < num2) return -1
+  }
+  return 0
 }
-return valueA - valueB
-}
-return 0
-})
-}
+
+// 示例输入
+const versions = ['0.1.1', '2.3.3', '0.302.1', '4.2', '4.3.5', '4.3.4.5']
+// 对版本号数组进行排序
+const sortedVersions = versions.sort(compareVersion)
+// 输出  ['0.1.1', '0.302.1', '2.3.3', '4.2', '4.3.4.5', '4.3.5']
+console.log(sortedVersions)
+```
 
 ### 【代码题】数字转字符串
 
 样例输入：1234567890
 样例输出：1,234,567,890
 
-js 复制代码 function toString(num) {
-// 这是最简单的写法
-// return num.toLocaleString()
-const result = []
-const str = `${num}`.split('').reverse()
-for (let i = 0 i < str.length i++) {
-if (i && i % 3 === 0) {
-result.push(',')
-}
-result.push(str[i])
-}
-return result.reverse().join('')
-}
-
-## 实现一个数组扁平化函数
-
-要求实现一个简单的数组扁平化函数，可以将嵌套的数组转化为一维数组。
-
 ```js
+return num.toLocaleString()
 
+function toString(num) {
+
+  const result = []
+  const str = `${num}`.split('').reverse()
+
+  for (let i = 0 i < str.length i++) {
+    if (i && i % 3 === 0) {
+      result.push(',')
+    }
+    result.push(str[i])
+  }
+  return result.reverse().join('')
+}
 ```
 
 ## 将奇数排在前面，偶数排在后面。要求时间复杂度 O(n)。空间复杂度 O(1)（不能用 splice）
-
-## URL 与 JSON 互相转换
-
-```js
-// 调用参考
-const url = 'https://www.douyin.com/abc?foo=1&bar=2'
-const urlObj = urlToObj(url)
-console.log(urlObj)
-// 输出
-// {
-//     path: 'https://www.douyin.com/abc',
-//     query: {
-//         foo: '1',
-//         bar: '2'
-//     }
-// }
-urlObj.query.coo = '3'
-const newUrl = objToUrl(urlObj)
-console.log(newUrl)
-// 输出 https://www.douyin.com/abc?foo=1&bar=2&coo=3
-```
-
-```js
-function urlToObj(url) {}
-
-function objToUrl(obj) {}
-```
-
-## 页面路由
-
-js 如何实现页面地址发生变化，但页面不发生跳转，请用 js 实现
 
 ```js
 
@@ -223,19 +545,33 @@ js 如何实现页面地址发生变化，但页面不发生跳转，请用 js �
 样例输入：strs = ['abcdef', 'abdefw', 'abc']
 输出：'ab'，若没有找到公共前缀则输出空字符串
 
-js 复制代码 const findCommonPrefix = arr => {
-let str = ''
-const n = arr.map(item => item.length).sort()[0]
-for (let i = 0 i < n i++) {
-str += arr[0][i]
-if (arr.some(item => !item.startsWith(str)) {
-return str.slice(0, str.length - 1)
-}
-}
-return str
+```js
+function findLongestCommonPrefix(strs) {
+  if (strs.length === 0 || strs.includes('')) return ''
+
+  // 找到最短的字符串
+  let shortest = strs.reduce((shortest, str) =>
+    shortest.length <= str.length ? shortest : str
+  )
+
+  // 检查每个字符
+  for (let i = 0; i < shortest.length; i++) {
+    // 如果当前字符不是所有字符串的公共前缀，则返回当前已找到的前缀
+    if (!strs.every((str) => str[i] === shortest[i])) {
+      return shortest.slice(0, i)
+    }
+  }
+
+  // 最短字符串本身就是最长公共前缀
+  return shortest
 }
 
-## 【代码题】字符串解码
+// 样例输入
+const strs = ['abcdef', 'abdefw', 'abc']
+console.log(findLongestCommonPrefix(strs)) // 输出：'ab'
+```
+
+## 字符串解码
 
 样例输入：s = "3[a2[c]]"
 样例输出：accaccacc
@@ -287,58 +623,39 @@ function decodeString(s) {
 }
 ```
 
-## 【代码题】查找有序数组中数字最后一次出现的位置
+## 查找有序数组中数字最后一次出现的位置
 
 输入：nums = [5,7,7,8,8,10], target = 8
 输出：4
 
-js 复制代码// 最简答的方式就是直接遍历然后根据有序的条件找到当前值等于目标且下一个值不等于目标的结果
-// 写出来之后面试官问了时间复杂度，这个就是单层循环的 O(N)，最坏情况就是刚好最后一个值是目标值
-const findLast = (nums, target) => {
-for (let i = 0 i < nums.length i++) {
-if (target === nums[i] && target !== nums[i + 1]) {
-return i
-}
-}
-return -1
-}
-
-// 问有没有更好的方式，就想到了二分查找，对于已经有序的数组，只需要通过双指针不断更新左右边界位置就行
-// 二分法最主要的就是寻找二分结束的边界条件，这里选择所有的查找最后都只剩两个值
-// 然后对这两个值再额外判断一下是否符合结果
-// 面试官继续追问二分法的时间复杂度，这个我有点懵，不过考虑跟递归差不多，所以就回答了 O(logN)，应该是没错
-// 二分查找最坏的情况是刚好第一个值或者最后一个值，或者中间值是目标值
-const findLast2 = (nums, target) => {
-let left = 0
-let right = nums.length - 1
-while (right > left + 1) {
-const mid = Math.floor((left + right) / 2)
-if (nums[mid] > target) {
-right = mid - 1
-} else {
-left = mid
-}
-}
-if (nums[right] === target) {
-return right
-}
-if (nums[left] === target) {
-return left
-}
-return -1
-}
-
 ```js
+function findLastPosition(nums, target) {
+  let left = 0
+  let right = nums.length - 1
+  let result = -1
 
+  while (left <= right) {
+    let mid = Math.floor((left + right) / 2)
+    if (nums[mid] === target) {
+      result = mid // 找到一个目标值，记录位置并继续在右侧查找
+      left = mid + 1 // 移动左边界以继续查找可能的更后面的目标值
+    } else if (nums[mid] < target) {
+      left = mid + 1
+    } else {
+      right = mid - 1
+    }
+  }
+
+  return result
+}
+
+// 示例
+const nums = [5, 7, 7, 8, 8, 10]
+const target = 8
+console.log(findLastPosition(nums, target)) // 输出 4
 ```
 
 ## 数组转树结构
-
-```js
-
-```
-
-## 解析出 URL 中所有的部分
 
 ```js
 
@@ -362,7 +679,6 @@ return -1
 
 ```
 
-
 ## 中划线转大写
 
 ```js
@@ -376,18 +692,6 @@ return -1
 ```
 
 ## 手写括号匹配
-
-```js
-
-```
-
-## 手写 Promise.all / Promise.race / Promise.allSettled
-
-```js
-
-```
-
-## 使用 es5 实现 es6 的 let 关键字
 
 ```js
 

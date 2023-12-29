@@ -154,12 +154,6 @@ generator则是一个生成器，可迭代协议的一种表现。使用Symbol.i
 迭代器通过在函数名前标记*来定义，在函数中通过yeild来进行暂停，可以使用next方法来进行逐个遍历，返回value和done的对象
 
 
-
-
-## 对象的继承
-
-原型继承，
-
 ## 取消已发送的ajax请求
 
 - xhr.abort()
@@ -208,20 +202,6 @@ cancel('Operation canceled by the user.');
 
 但async的函数可以通过try-catch来进行错误捕获
 
-
-## new URL()
-
-
-用于创建一个URL对象，它提供了解析和构建URL的便利方法
-
-```js
-let url = new URL('https://www.example.com/path?query=123#hash');
-
-console.log(url.hostname); // 'www.example.com'
-console.log(url.pathname); // '/path'
-console.log(url.searchParams.get('query')); // '123'
-console.log(url.hash); // '#hash'
-```
 
 ## 浏览器缓存
 
